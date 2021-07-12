@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -29,11 +28,6 @@ func run(args []string) error {
 		Usage: "usage: todo",
 		Commands: []*cli.Command{
 			{
-				Name:   "sort",
-				Usage:  "`ysm sort file` prints to std.out",
-				Action: sortCliAction,
-			},
-			{
 				Name:  "update",
 				Usage: "`cat file | ysm update` prints to std.out",
 				Flags: []cli.Flag{
@@ -43,43 +37,19 @@ func run(args []string) error {
 						Value:   "networking.k8s.io/v1",
 						Usage:   "version to convert to",
 					},
+					&cli.StringFlag{
+						Name:    "cleanup",
+						Aliases: []string{"c"},
+						Value:   "metadata.creationTimestamp,status",
+						Usage:   "remove paths .metadata.creationTimestamp and .status by default",
+					},
 				},
 				Action: updateIngress,
-			},
-			{
-				Name:   "rm",
-				Usage:  "`cat file | ysm rm` removes paths .metadata.creationTimestamp and .status from yaml",
-				Action: rmAction,
 			},
 		},
 	}
 
 	return app.Run(os.Args)
-}
-
-func sortCliAction(c *cli.Context) error {
-	filePath := c.Args().Get(0)
-	fileReader, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer fileReader.Close()
-
-	yamlOut, err := decodeYamlToInterfaceMap(fileReader)
-	if err != nil {
-		return err
-	}
-
-	out, err := encodeYamlFromInterfaceMap(yamlOut)
-	if err != nil {
-		return err
-	}
-
-	// update(c.Context, "", "")
-
-	fmt.Println(out)
-
-	return nil
 }
 
 func decodeYamlToInterfaceMap(r io.Reader) (map[string]interface{}, error) {
@@ -101,30 +71,12 @@ func decodeYamlToInterfaceMap(r io.Reader) (map[string]interface{}, error) {
 	return data, nil
 }
 
-func encodeYamlFromInterfaceMap(data map[string]interface{}) (string, error) {
-	out, err := yaml.Marshal(data)
-	if err != nil {
-		return "", fmt.Errorf("couldn't encode data to yaml: %s", err)
-	}
-
-	return string(out), nil
-}
-
-func rmAction(c *cli.Context) error {
-	return readYamlAndDelField(os.Stdin, os.Stdout, []string{"metadata.creationTimestamp", "status"})
-}
-
-func readYamlAndDelField(r io.Reader, w io.Writer, pathsOfKeysToBeDeleted []string) error {
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return err
-	}
-
+func readYamlAndDelField(in []byte, pathsOfKeysToBeDeleted []string) (string, error) {
 	data := map[string]interface{}{}
 
-	err = yaml.Unmarshal(b, &data)
+	err := yaml.Unmarshal(in, &data)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	for _, path := range pathsOfKeysToBeDeleted {
@@ -133,15 +85,10 @@ func readYamlAndDelField(r io.Reader, w io.Writer, pathsOfKeysToBeDeleted []stri
 
 	out, err := encodeYamlFromInterfaceMap(data)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	_, err = w.Write([]byte(out))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return out, nil
 }
 
 func removeByPath(data map[string]interface{}, keyPath string) {
@@ -167,10 +114,30 @@ func removeByPath(data map[string]interface{}, keyPath string) {
 	}
 }
 
+func encodeYamlFromInterfaceMap(data map[string]interface{}) (string, error) {
+	b := strings.Builder{}
+	yamlEncoder := yaml.NewEncoder(&b)
+
+	yamlEncoder.SetIndent(2)
+
+	err := yamlEncoder.Encode(&data)
+	if err != nil {
+		return "", err
+	}
+
+	return b.String(), nil
+}
+
 func updateIngress(c *cli.Context) error {
 	content, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return err
+	}
+
+	rmPaths := strings.Split(c.String("cleanup"), ",")
+
+	if c.String("cleanup") == "" {
+		rmPaths = []string{}
 	}
 
 	docs := splitManifests(string(content))
@@ -184,7 +151,7 @@ func updateIngress(c *cli.Context) error {
 		docs[i] = doc
 	}
 
-	err = output(docs)
+	err = output(docs, rmPaths)
 	if err != nil {
 		return err
 	}
@@ -209,9 +176,14 @@ func update(ctx context.Context, in, version string) (string, error) {
 	return string(out), nil
 }
 
-func output(docs []string) error {
+func output(docs, rmPaths []string) error {
 	for _, doc := range docs {
-		_, err := fmt.Printf("---\n%s", doc)
+		doc, err := readYamlAndDelField([]byte(doc), rmPaths)
+		if err != nil {
+			return err
+		}
+
+		_, err = fmt.Printf("---\n%s", doc)
 		if err != nil {
 			return err
 		}

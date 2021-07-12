@@ -1,0 +1,189 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/proxy-body-size: 20m
+    kubernetes.io/ingress.class: nginx
+  creationTimestamp: null
+  name: glue
+spec:
+  rules:
+    - host: ${STORE_DE_GLUE_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: de-glue
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+    - host: ${STORE_AT_GLUE_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: at-glue
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+    - host: ${STORE_US_GLUE_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: us-glue
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - ${STORE_DE_GLUE_DOMAIN}
+        - ${STORE_AT_GLUE_DOMAIN}
+        - ${STORE_US_GLUE_DOMAIN}
+      secretName: spryker-demo-tls
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/proxy-body-size: 20m
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/auth-realm: Authentication Required
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+  creationTimestamp: null
+  name: yves
+spec:
+  rules:
+    - host: ${STORE_DE_YVES_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: de-yves
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+    - host: ${STORE_AT_YVES_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: at-yves
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+    - host: ${STORE_US_YVES_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: us-yves
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - ${STORE_DE_YVES_DOMAIN}
+        - ${STORE_AT_YVES_DOMAIN}
+        - ${STORE_US_YVES_DOMAIN}
+      secretName: spryker-demo-tls
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/proxy-body-size: 20m
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/auth-realm: Authentication Required
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+  creationTimestamp: null
+  name: zed
+spec:
+  rules:
+    - host: ${STORE_DE_ZED_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: de-zed
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+    - host: ${STORE_AT_ZED_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: at-zed
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+    - host: ${STORE_US_ZED_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: us-zed
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - ${STORE_DE_ZED_DOMAIN}
+        - ${STORE_AT_ZED_DOMAIN}
+        - ${STORE_US_ZED_DOMAIN}
+      secretName: spryker-demo-tls
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/auth-realm: Authentication Required
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+  creationTimestamp: null
+  name: entrance
+spec:
+  rules:
+    - host: ${ENTRANCE_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: entrance
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - ${ENTRANCE_DOMAIN}
+      secretName: spryker-demo-tls
+status:
+  loadBalancer: {}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/auth-realm: Authentication Required
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+  creationTimestamp: null
+  name: mailcatcher
+spec:
+  rules:
+    - host: ${MAILCATCHER_DOMAIN}
+      http:
+        paths:
+          - backend:
+              serviceName: mail
+              servicePort: 80
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - ${MAILCATCHER_DOMAIN}
+      secretName: spryker-demo-tls
+status:
+  loadBalancer: {}
